@@ -10,7 +10,8 @@ from grokfast import gradfilter_ma, gradfilter_ema
 
 
 
-path = '/media/user/Новый том/stereo_imgs/'
+#path = '/media/user/Новый том/stereo_imgs/'
+path = '/home/stereo_imgs/'
 
 bsize = int(input('batch size = '))
 num_ep = int(input('number of epochs = '))
