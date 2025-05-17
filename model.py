@@ -76,9 +76,12 @@ class Model(nn.Module):
         self.encoder = Encoder()
         self.decoder = Decoder()
 
-    def forward(self, left, right): 
+    def forward(self, left, right, only_left=False): 
         left = self.encoder(left)
-        right = self.encoder(right) 
+        if only_left:
+            right = torch.zeros_like(left)
+        else:
+            right = self.encoder(right) 
         out = self.decoder(left, right)
         return out 
 

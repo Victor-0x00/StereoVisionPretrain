@@ -9,15 +9,20 @@ from grokfast import gradfilter_ma, gradfilter_ema
 
 
 
-bsize = 11
 
-files_name = dtld.getFilesName('/home/user/Рабочий стол/stereo_imgs/')
+path = '/media/user/Новый том/stereo_imgs/'
+
+bsize = int(input('batch size = '))
+num_ep = int(input('number of epochs = '))
+only_left = True if input('only left = ') == 'True' else False 
+
+files_name = dtld.getFilesName(path)
 train_files_name, test_files_name = train_test_split(files_name, test_size=0.2, random_state=666) 
 
-train_dataset = dtld.Dataset_('/home/user/Рабочий стол/stereo_imgs/', train_files_name[:2000], disp_map=False) 
+train_dataset = dtld.Dataset_(path, train_files_name, disp_map=False) 
 train_dataloader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, num_workers=10)  
 
-test_dataset = dtld.Dataset_('/home/user/Рабочий стол/stereo_imgs/', test_files_name[:500], disp_map=False)  
+test_dataset = dtld.Dataset_(path, test_files_name, disp_map=False)  
 test_dataloader = DataLoader(test_dataset, batch_size=bsize, num_workers=10)
 
 
@@ -33,11 +38,9 @@ optim = AdamW(model.parameters(), lr=0.0001)
 loss_fn = torch.nn.MSELoss() 
 
 val_loss_prev = 1e8
-
-ep=1
-num_ep=150
 grads = None
-while True:
+
+for ep in range(1, num_ep+1):
 	train_loss = 0 
 	val_loss = 0 
 
@@ -47,7 +50,7 @@ while True:
 		mask_resize, _ = generateRandomMask((480, 640), 16, 0.9)
 		mask_resize = mask_resize.to(device)
 		inv_mask = torch.ones_like(mask_resize)-mask_resize  
-		pred = model(imgL*mask_resize, imgR)  
+		pred = model(imgL*mask_resize, imgR, only_left)  
 		loss = loss_fn(pred*inv_mask, imgL*inv_mask) 
 		loss.backward()
 		grads = gradfilter_ema(model, grads=grads)
@@ -62,12 +65,14 @@ while True:
 		mask_resize = mask_resize.to(device)
 		inv_mask = torch.ones_like(mask_resize)-mask_resize
 		with torch.no_grad():
-			pred = model(imgL*mask_resize, imgR) 
+			pred = model(imgL*mask_resize, imgR, only_left) 
 		loss = loss_fn(pred*inv_mask, imgL*inv_mask) 
 		val_loss += loss.item()
 
 	print(ep, train_loss, val_loss)  
-	ep+=1
+	with open('models/train_log.txt', 'a') as f:
+		f.write(f'{ep} {train_loss} {val_loss} {only_left}\n')
+	
 	if val_loss <= val_loss_prev: 
 		torch.save(model, 'models/best_model.pt')
 		val_loss_prev = val_loss 
