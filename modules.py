@@ -335,6 +335,25 @@ class CrossAttention(nn.Module):
 
 
 
+class LaplacianLossBounded2(nn.Module): 
+    def __init__(self, max_gtnorm=None, a=3.0, b=3.0):
+        super().__init__()
+        self.max_gtnorm = max_gtnorm
+        self.with_conf = True
+        self.a, self.b = a, b
+        
+    def forward(self, predictions, gt, conf):
+        mask = torch.isfinite(gt)
+        mask = mask[:,0,:,:]
+        if self.max_gtnorm is not None: mask *= _get_gtnorm(gt)[:,0,:,:]<self.max_gtnorm
+        conf = conf.squeeze(1)
+        conf = 2*self.a*(torch.sigmoid(conf/self.b)-0.5)
+        return (torch.abs(gt-predictions).sum(dim=1)[mask]/torch.exp(conf[mask])+conf[mask]).mean()
+
+
+
+
+
 if __name__ == '__main__': 
 	attn = DispAttentionBlock(16, 512, 40)
 	for i in range(10):

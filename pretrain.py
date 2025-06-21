@@ -11,7 +11,7 @@ from grokfast import gradfilter_ma, gradfilter_ema
 
 
 #path = '/media/user/Новый том/stereo_imgs/'
-path = '/home/stereo_imgs/'
+path = '/home/ubuntu/stereo_imgs/'
 
 bsize = int(input('batch size = '))
 num_ep = int(input('number of epochs = '))
@@ -21,10 +21,10 @@ files_name = dtld.getFilesName(path)
 train_files_name, test_files_name = train_test_split(files_name, test_size=0.2, random_state=666) 
 
 train_dataset = dtld.Dataset_(path, train_files_name, disp_map=False) 
-train_dataloader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, num_workers=2)  
+train_dataloader = DataLoader(train_dataset, batch_size=bsize, shuffle=True, num_workers=8)  
 
 test_dataset = dtld.Dataset_(path, test_files_name, disp_map=False)  
-test_dataloader = DataLoader(test_dataset, batch_size=bsize, num_workers=2)
+test_dataloader = DataLoader(test_dataset, batch_size=bsize, num_workers=8)
 
 
 

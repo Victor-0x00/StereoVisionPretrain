@@ -78,7 +78,7 @@ def generateRandomMask(image_size, patch_size, mask_ratio):
 
 
 def tensor2img(tensor):
-	img = tensor.permute(1, 2, 0).numpy()
+	img = tensor.permute(1, 2, 0).detach().numpy()
 	img *= np.array([[0.229, 0.224, 0.225]])
 	img += np.array([0.485, 0.456, 0.406]) 
 	img *= 255.0 
