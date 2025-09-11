@@ -7,7 +7,7 @@ from ultralytics.nn.modules.block import C3k2
 from ultralytics.nn.modules.conv import Conv
 from time import time
 
-
+from ultralytics.nn.modules.block import C3k2, SPPF, C2PSA
 
 
 
@@ -106,6 +106,31 @@ class DecoderDisp(nn.Module):
 
 
 
+class DecoderDetection(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.x_pos = torch.arange(40, dtype=torch.long)
+        self.disp_attention = DispAttentionBlock(8, 512, 40)
+        self.swin_blocks = nn.Sequential(SwinTransformerBlock(512, (30, 40), 8, window_size=10, shift_size=0, drop=0.2),
+                                         SwinTransformerBlock(512, (30, 40), 8, window_size=10, shift_size=5, drop=0.2),
+                                         SwinTransformerBlock(512, (30, 40), 8, window_size=10, shift_size=0, drop=0.2),
+                                         SwinTransformerBlock(512, (30, 40), 8, window_size=10, shift_size=5, drop=0.2))
+                                          
+        self.head = nn.Sequential(C3k2(512, 512, c3k=True, e=0.25), nn.Conv2d(512, 256, 3, 2, padding=1),
+                                  nn.SiLU(), nn.Conv2d(256, 6, 1))
+
+    def forward(self, left, right):
+        B, C, H, W = left.shape
+        
+        out = self.disp_attention(left, right).view(B, H*W, C)
+        out = self.swin_blocks(out).view(B, H, W, C).permute(0, 3, 1, 2)
+        out = self.head(out)
+        return out
+
+
+
+
+
 class Model(nn.Module):
     def __init__(self):
         super().__init__()
@@ -141,12 +166,30 @@ class ModelDisp(nn.Module):
 
 
 
+class ModelDetection(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = Encoder()
+        self.decoder = DecoderDetection()
+
+    def forward(self, left, right): 
+        left, _ = self.encoder(left)
+        right, _ = self.encoder(right) 
+        out = self.decoder(left, right)
+        objectness, coords = torch.split(out, dim=1, split_size_or_sections=[1, 5])
+        return objectness, coords
+
+
+
+
+
 if __name__ == '__main__':
-    model = ModelDisp().to('cuda').eval()
+    model = ModelDetection().to('cuda').eval()
     for i in range(10):
         img1 = torch.randn(1, 3, 480, 640, dtype=torch.float32).to('cuda')
         img2 = torch.randn(1, 3, 480, 640, dtype=torch.float32).to('cuda')
         t = time()
-        out = model(img1, img2).cpu()
+        out = model(img1, img2)
         print(time()-t) 
+        print(out[0].shape)
 

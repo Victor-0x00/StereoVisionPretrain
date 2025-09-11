@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="torch.optim.lr_s
 
 bsize = 15
 
-path = '/media/user/Новый том/unrealstereo_10k_clean/'
+path = '/path to dataset/'
 
 files_name = dtld.getFilesName(path)
 
